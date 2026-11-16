@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MotorShield Taller - JM | Dashboard de Incidencias</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <style>
+    .badge-alta { background:#ef4444; color:#fff; }
+    .badge-media { background:#f59e0b; color:#1f2937; }
+    .badge-baja { background:#22c55e; color:#fff; }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen">
+  <header class="bg-white dark:bg-slate-800 shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">MotorShield Taller - JM</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Panel de Incidencias y Presupuestos - Taller Mecánico</p>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <button id="btnNuevo" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">+ Nuevo Ticket</button>
+      <button id="btnExportar" class="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700">Exportar Informe Markdown</button>
+      <button id="btnConfig" class="px-4 py-2 rounded bg-slate-600 text-white hover:bg-slate-700">Configuración</button>
+      <button id="btnTheme" class="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700">Cambiar tema</button>
+    </div>
+  </header>
+
+  <main class="p-4 space-y-4 max-w-7xl mx-auto">
+    <!-- KPIs -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <p class="text-sm text-slate-500">Total Tickets</p>
+        <p id="kpiTotal" class="text-3xl font-bold">0</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <p class="text-sm text-slate-500">Pendientes ALTA</p>
+        <p id="kpiAlta" class="text-3xl font-bold text-red-500">0</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <p class="text-sm text-slate-500">PII Interceptados</p>
+        <p id="kpiPii" class="text-3xl font-bold text-amber-500">0</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-4">
+        <p class="text-sm text-slate-500">Ataques/Rechazos</p>
+        <p id="kpiBloq" class="text-3xl font-bold text-purple-500">0</p>
+      </div>
+    </section>
+
+    <!-- Filtros -->
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow p-4 flex flex-col md:flex-row gap-3">
+      <select id="filtroCategoria" class="px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600">
+        <option value="TODAS">TODAS</option>
+        <option value="REDES">REDES</option>
+        <option value="HARDWARE">HARDWARE</option>
+        <option value="SOFTWARE">SOFTWARE</option>
+        <option value="FACTURACION">FACTURACION</option>
+        <option value="SEGURIDAD">SEGURIDAD</option>
+        <option value="OTROS">OTROS</option>
+      </select>
+      <input id="buscador" type="text" placeholder="Buscar por autor, ubicación o mensaje..." class="flex-1 px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600" />
+    </section>
+
+    <!-- Tickets -->
+    <section id="listaTickets" class="grid grid-cols-1 md:grid-cols-2 gap-4"></section>
+  </main>
+
+  <!-- Modal Nuevo Ticket -->
+  <div id="modalNuevo" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl p-6 space-y-3">
+      <h2 class="text-xl font-bold">Nuevo Ticket</h2>
+      <input id="nAutor" type="text" placeholder="Autor" class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600" />
+      <input id="nUbicacion" type="text" placeholder="Ubicación" class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600" />
+      <select id="nCategoria" class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600">
+        <option>REDES</option><option>HARDWARE</option><option>SOFTWARE</option><option>FACTURACION</option><option>SEGURIDAD</option><option>OTROS</option>
+      </select>
+      <textarea id="nMensaje" rows="4" placeholder="Describe la incidencia..." class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600"></textarea>
+      <div id="alertaInjection" class="hidden p-3 rounded bg-red-100 text-red-700 border border-red-300"></div>
+      <div class="p-3 rounded bg-slate-100 dark:bg-slate-700">
+        <p class="text-xs font-semibold mb-1">Vista previa protegida RGPD</p>
+        <p id="previewRgpd" class="text-sm whitespace-pre-wrap"></p>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancelar" class="px-4 py-2 rounded bg-slate-300 dark:bg-slate-600">Cancelar</button>
+        <button id="btnGuardar" class="px-4 py-2 rounded bg-blue-600 text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Configuración -->
+  <div id="modalConfig" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl p-6 space-y-3">
+      <h2 class="text-xl font-bold">Configuración (Reto A y B)</h2>
+      <p class="text-sm text-slate-500">Claves guardadas solo en sessionStorage (no se suben a GitHub).</p>
+      <label class="block text-sm font-semibold">GROQ_API_KEY (Reto A)</label>
+      <input id="cfgGroq" type="password" class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600" placeholder="gsk_..." />
+      <label class="block text-sm font-semibold">Supabase URL (Reto B)</label>
+      <input id="cfgSbUrl" type="text" class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600" placeholder="https://xxxx.supabase.co" />
+      <label class="block text-sm font-semibold">Supabase anon key (Reto B)</label>
+      <input id="cfgSbKey" type="password" class="w-full px-3 py-2 rounded border dark:bg-slate-700 dark:border-slate-600" placeholder="eyJ..." />
+      <div class="flex justify-end gap-2">
+        <button id="btnCerrarConfig" class="px-4 py-2 rounded bg-slate-300 dark:bg-slate-600">Cerrar</button>
+        <button id="btnGuardarConfig" class="px-4 py-2 rounded bg-blue-600 text-white">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center text-xs text-slate-500 py-6">
+    MotorShield Taller - JM · IES Alcántara · 2º DAW - FIAG
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
